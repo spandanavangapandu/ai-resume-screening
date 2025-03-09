@@ -4,7 +4,7 @@ pandas>=2.0
 scikit-learn
 python-dotenv
 nltk
-spacy
+spacy>=3.0
 docx2txt
 pdfplumber
 matplotlib
