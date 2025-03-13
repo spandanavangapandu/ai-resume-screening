@@ -9,19 +9,21 @@ import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-# ✅ Ensure spaCy model is installed
+# ✅ Ensure SpaCy model is installed
+@st.cache_resource
 def ensure_spacy_model():
     model_name = "en_core_web_sm"
     try:
-        spacy.load(model_name)
+        return spacy.load(model_name)
     except OSError:
-        subprocess.run([sys.executable, "-m", "spacy", "download", model_name])
+        st.warning(f"Downloading {model_name} model...")
+        subprocess.run([sys.executable, "-m", "spacy", "download", model_name], check=True)
+        return spacy.load(model_name)
 
-# ✅ Load spaCy model after ensuring installation
-ensure_spacy_model()
-nlp = spacy.load("en_core_web_sm")
+# ✅ Load NLP model
+nlp = ensure_spacy_model()
 
-# 📄 Function to extract text from resumes (PDF/DOCX)
+# 📄 Extract text from resumes (PDF/DOCX)
 def extract_text_from_file(uploaded_file):
     text = ""
     if uploaded_file.name.endswith('.pdf'):
@@ -32,7 +34,7 @@ def extract_text_from_file(uploaded_file):
         text = docx2txt.process(uploaded_file)
     return text
 
-# 🔍 Text Preprocessing Function
+# 🔍 Preprocess text for NLP analysis
 def preprocess_text(text):
     doc = nlp(text.lower())
     tokens = [token.lemma_ for token in doc if not token.is_stop and not token.is_punct]
