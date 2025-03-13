@@ -6,6 +6,7 @@ import spacy
 import subprocess
 import sys
 import numpy as np
+import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -53,37 +54,32 @@ st.markdown("""
     <style>
         body {
             font-family: 'Arial', sans-serif;
-            background: linear-gradient(to right, #ff9966, #ff5e62);
+            background: linear-gradient(to right, #1a1a2e, #16213e);
+            color: white;
         }
         .title {
             font-size: 40px;
             font-weight: bold;
             text-align: center;
-            color: white;
+            color: #fff;
             padding: 10px;
-            background: linear-gradient(to right, #6a11cb, #2575fc);
+            background: linear-gradient(to right, #0f0c29, #302b63, #24243e);
             border-radius: 10px;
             margin-bottom: 15px;
         }
-        .subtitle {
-            font-size: 22px;
-            color: #333;
-            text-align: center;
-            font-weight: bold;
-        }
-        textarea {
-            width: 100% !important;
-            height: 180px !important;
+        .stTextArea>div>textarea {
             border-radius: 12px;
             border: 2px solid #3498db;
             padding: 12px;
             font-size: 18px;
-            background: #f9f9f9;
+            background: #1a1a2e;
+            color: white;
         }
-        .stFileUploader {
+        .stFileUploader>div {
             border-radius: 12px;
             border: 2px solid #27ae60;
-            background: #f5f5f5;
+            background: #16213e;
+            color: white;
         }
         .stButton>button {
             background: linear-gradient(to right, #ff512f, #dd2476);
@@ -105,13 +101,20 @@ st.markdown("""
             background: #e3f2fd;
             border-radius: 10px;
             font-size: 18px;
+            color: black;
+        }
+        .footer {
+            font-size: 14px;
+            text-align: center;
+            margin-top: 30px;
+            color: #bbb;
         }
     </style>
 """, unsafe_allow_html=True)
 
 # 🎯 Streamlit UI Layout
 st.markdown("<div class='title'>📄 AI Resume Screening & Candidate Ranking System</div>", unsafe_allow_html=True)
-st.markdown("<div class='subtitle'>🚀 Find the best candidates based on job descriptions using AI!</div><br>", unsafe_allow_html=True)
+st.write("### 🚀 Find the best candidates based on job descriptions using AI!")
 
 # 🔍 Job Description Input
 st.subheader("🔍 Paste the Job Description Here:")
@@ -128,22 +131,33 @@ if st.button("🔎 Analyze & Rank Candidates"):
     elif not uploaded_files:
         st.error("❌ Please upload at least one resume.")
     else:
-        # ✅ Preprocess job description
-        job_desc_clean = preprocess_text(job_desc)
+        with st.spinner("Processing resumes... ⏳"):
+            # ✅ Preprocess job description
+            job_desc_clean = preprocess_text(job_desc)
 
-        # ✅ Extract and preprocess resumes
-        resume_texts = [extract_text_from_file(f) for f in uploaded_files]
-        resume_texts_clean = [preprocess_text(text) for text in resume_texts]
+            # ✅ Extract and preprocess resumes
+            resume_texts = [extract_text_from_file(f) for f in uploaded_files]
+            resume_texts_clean = [preprocess_text(text) for text in resume_texts]
 
-        # ✅ Rank Resumes
-        scores = rank_resumes(job_desc_clean, resume_texts_clean)
-        ranked_candidates = sorted(zip(uploaded_files, scores), key=lambda x: x[1], reverse=True)
+            # ✅ Rank Resumes
+            scores = rank_resumes(job_desc_clean, resume_texts_clean)
+            ranked_candidates = sorted(zip(uploaded_files, scores), key=lambda x: x[1], reverse=True)
 
         # 🏆 Display Results
         st.subheader("🏆 Ranked Candidates:")
+        results = []
         for i, (resume, score) in enumerate(ranked_candidates):
+            results.append({"Rank": i+1, "Candidate": resume.name, "Score": round(score * 100, 2)})
             st.markdown(f"""
                 <div class='result-box'>
-                    <b>{i+1}. {resume.name}</b> - 🔹 Similarity Score: <b>{score:.2f}</b>
+                    <b>{i+1}. {resume.name}</b> - 🔹 Similarity Score: <b>{score:.2%}</b>
                 </div><br>
             """, unsafe_allow_html=True)
+
+        # 📥 Downloadable CSV Results
+        results_df = pd.DataFrame(results)
+        csv = results_df.to_csv(index=False).encode('utf-8')
+        st.download_button("📥 Download Results", csv, "resume_rankings.csv", "text/csv", key='download-csv')
+
+# 📌 Footer
+st.markdown("<div class='footer'>Developed with ❤️ by Spandana Vangapandu | AI Resume Screening System</div>", unsafe_allow_html=True)
